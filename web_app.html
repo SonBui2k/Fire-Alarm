@@ -1,0 +1,166 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire Alarm Realtime Monitoring</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { display: flex; justify-content: center; gap: 20px; }
+        .card { border: 1px solid #ccc; padding: 20px; border-radius: 10px; }
+        table { margin: 20px auto; border-collapse: collapse; }
+        th, td { border: 1px solid #ccc; padding: 10px; }
+        .alarm { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Fire Alarm Realtime Monitoring</h1>
+    <div class="container">
+        <div class="card">
+            <h2>Temperature</h2>
+            <p id="temperature">-- °C</p>
+            <p>Last updated: <span id="tempTimestamp">--</span></p>
+            <p>Data age: <span id="tempAge">--</span></p>
+        </div>
+        <div class="card">
+            <h2>Humidity</h2>
+            <p id="humidity">--%</p>
+            <p>Last updated: <span id="humidTimestamp">--</span></p>
+            <p>Data age: <span id="humidAge">--</span></p>
+        </div>
+        <div class="card">
+            <h2>Gas/Smoke</h2>
+            <p id="gasSmoke">--</p>
+            <p>Last updated: <span id="gasSmokeTimestamp">--</span></p>
+            <p>Data age: <span id="gasSmokeAge">--</span></p>
+        </div>
+        <div class="card">
+            <h2>Alarm Status</h2>
+            <p id="alarm" class="alarm">--</p>
+        </div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Temperature (°C)</th>
+                <th>Humidity (%)</th>
+                <th>Gas/Smoke</th>
+                <th>Alarm</th>
+            </tr>
+        </thead>
+        <tbody id="dataTable"></tbody>
+    </table>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAnlG8Eex-84yvJweI4x379_zFanmaGANQ",
+            databaseURL: "https://fire-alarm-67-default-rtdb.asia-southeast1.firebasedatabase.app/",
+            projectId: "fire-alarm-67",
+            storageBucket: "fire-alarm-67.firebasestorage.app",
+            messagingSenderId: "104754748738",
+            appId: "1:104754748738:web:ad71b65c9ee3b3ccebfcdb"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // References to database paths
+        const tempRef = database.ref('sensors/temperature');
+        const humidRef = database.ref('sensors/humidity');
+        const gasSmokeRef = database.ref('sensors/gas_smoke');
+        const alarmRef = database.ref('sensors/alarm');
+
+        // Update temperature
+        tempRef.on('value', (snapshot) => {
+            const temp = snapshot.val();
+            document.getElementById('temperature').innerText = temp ? `${temp} °C` : '-- °C';
+            document.getElementById('tempTimestamp').innerText = new Date().toLocaleString();
+            document.getElementById('tempAge').innerText = '0 seconds';
+        });
+
+        // Update humidity
+        humidRef.on('value', (snapshot) => {
+            const humid = snapshot.val();
+            document.getElementById('humidity').innerText = humid ? `${humid}%` : '--%';
+            document.getElementById('humidTimestamp').innerText = new Date().toLocaleString();
+            document.getElementById('humidAge').innerText = '0 seconds';
+        });
+
+        // Update gas/smoke
+        gasSmokeRef.on('value', (snapshot) => {
+            const gasSmoke = snapshot.val();
+            document.getElementById('gasSmoke').innerText = gasSmoke ? gasSmoke : '--';
+            document.getElementById('gasSmokeTimestamp').innerText = new Date().toLocaleString();
+            document.getElementById('gasSmokeAge').innerText = '0 seconds';
+        });
+
+        // Update alarm status
+        alarmRef.on('value', (snapshot) => {
+            const alarm = snapshot.val();
+            document.getElementById('alarm').innerText = alarm ? 'ALARM ON' : 'ALARM OFF';
+            if (alarm) document.getElementById('alarm').classList.add('alarm');
+            else document.getElementById('alarm').classList.remove('alarm');
+        });
+
+        // Update table with historical data
+        database.ref('sensors').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const tableBody = document.getElementById('dataTable');
+            tableBody.innerHTML = '';
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${new Date().toLocaleString()}</td>
+                <td>${data.temperature || '--'}</td>
+                <td>${data.humidity || '--'}</td>
+                <td>${data.gas_smoke || '--'}</td>
+                <td>${data.alarm ? 'ON' : 'OFF'}</td>
+            `;
+            tableBody.appendChild(row);
+        });
+    </script>
+</body>
+</html>
