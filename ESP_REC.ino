@@ -8,12 +8,12 @@
 #include "addons/RTDBHelper.h"
 
 // Network credentials
-#define WIFI_SSID "Thai Son T2"
-#define WIFI_PASSWORD "87654321"
+#define WIFI_SSID "wifi name"
+#define WIFI_PASSWORD "wifi password"
 
 // Firebase credentials
-const char* API_KEY = "AIzaSyAnlG8Eex-84yvJweI4x379_zFanmaGANQ";
-const char* DATABASE_URL = "https://fire-alarm-67-default-rtdb.asia-southeast1.firebasedatabase.app/";
+const char* API_KEY = "firebase_api_key";
+const char* DATABASE_URL = "firebase_URL";
 
 // Sensor pins
 #define MQ2_PIN 34        // Analog pin for MQ-2 (Gas/Smoke)
