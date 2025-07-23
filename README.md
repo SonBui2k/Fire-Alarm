@@ -1,2 +1,6 @@
 # Fire-Alarm
-nạp code từ file esp_rec.ino cho esp32. chạy web_app.html để truy cập localhost. sau khi code hoàn thành tải lên esp32, esp32 thực hiện kết nối wifi và bắt đầu nhận tín hiệu gas/smoke từ module mq2, tín hiệu nhiệt độ và độ ẩm từ module dht11. các tín hiệu này sẽ được gửi lên firebase, sau đó sẽ được hiển thị qua màn hình localhost.
+Access Firebase to create new project
+Choose Project Overview then choose Project Settings
+Scroll down to Your app section to find apiKey, databaseURL, projectId, storageBucket, messagingSenderId, appId. Copy and paste at exact place in web_app.html, server.py, email_send.py
+Go to Service accounts to find Firebase Admin SDK, choose an Admin SDK configuration snippet then copy and paste to exact place in server.py, email_send.py
+Change sender email address, app password and receiver email address
